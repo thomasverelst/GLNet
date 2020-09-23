@@ -1,13 +1,13 @@
 export CUDA_VISIBLE_DEVICES=0
 python train_deep_globe.py \
 --n_class 7 \
---data_path "/ssd1/chenwy/deep_globe/data/" \
---model_path "/home/chenwy/deep_globe/saved_models/" \
---log_path "/home/chenwy/deep_globe/runs/" \
+--data_path "/esat/ram/tverelst/dataset/aerial/DeepGlobe/" \
+--model_path "/users/visics/tverelst/proj/GLNet/saved_models/" \
+--log_path "/users/visics/tverelst/proj/GLNet/runs/" \
 --task_name "eval" \
 --mode 3 \
---batch_size 6 \
---sub_batch_size 6 \
+--batch_size 1 \
+--sub_batch_size 1 \
 --size_g 508 \
 --size_p 508 \
 --path_g "fpn_deepglobe_global.pth" \

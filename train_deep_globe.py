@@ -42,17 +42,31 @@ print("mode:", mode, "evaluation:", evaluation, "test:", test)
 ###################################
 print("preparing datasets and dataloaders......")
 batch_size = args.batch_size
-ids_train = [image_name for image_name in os.listdir(os.path.join(data_path, "train", "Sat")) if is_image_file(image_name)]
-ids_val = [image_name for image_name in os.listdir(os.path.join(data_path, "crossvali", "Sat")) if is_image_file(image_name)]
-ids_test = [image_name for image_name in os.listdir(os.path.join(data_path, "offical_crossvali", "Sat")) if is_image_file(image_name)]
+# ids_train = [image_name for image_name in os.listdir(os.path.join(data_path, "train", "Sat")) if is_image_file(image_name)]
+# ids_val = [image_name for image_name in os.listdir(os.path.join(data_path, "crossvali", "Sat")) if is_image_file(image_name)]
+# ids_test = [image_name for image_name in os.listdir(os.path.join(data_path, "offical_crossvali", "Sat")) if is_image_file(image_name)]
+
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# dataset_train = DeepGlobe(os.path.join(data_path, "train"), ids_train, label=True, transform=True)
+# dataloader_train = torch.utils.data.DataLoader(dataset=dataset_train, batch_size=batch_size, num_workers=10, collate_fn=collate, shuffle=True, pin_memory=True)
+# dataset_val = DeepGlobe(os.path.join(data_path, "crossvali"), ids_val, label=True)
+# dataloader_val = torch.utils.data.DataLoader(dataset=dataset_val, batch_size=batch_size, num_workers=10, collate_fn=collate, shuffle=False, pin_memory=True)
+# dataset_test = DeepGlobe(os.path.join(data_path, "offical_crossvali"), ids_test, label=False)
+# dataloader_test = torch.utils.data.DataLoader(dataset=dataset_test, batch_size=batch_size, num_workers=10, collate_fn=collate_test, shuffle=False, pin_memory=True)
+
+
+# ids_train = [image_name for image_name in os.listdir(os.path.join(data_path, "train", "Sat")) if is_image_file(image_name)]
+# ids_val = [image_name for image_name in os.listdir(os.path.join(data_path, "crossvali", "Sat")) if is_image_file(image_name)]
+# ids_test = [image_name for image_name in os.listdir(os.path.join(data_path, "offical_crossvali", "Sat")) if is_image_file(image_name)]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dataset_train = DeepGlobe(os.path.join(data_path, "train"), ids_train, label=True, transform=True)
-dataloader_train = torch.utils.data.DataLoader(dataset=dataset_train, batch_size=batch_size, num_workers=10, collate_fn=collate, shuffle=True, pin_memory=True)
-dataset_val = DeepGlobe(os.path.join(data_path, "crossvali"), ids_val, label=True)
-dataloader_val = torch.utils.data.DataLoader(dataset=dataset_val, batch_size=batch_size, num_workers=10, collate_fn=collate, shuffle=False, pin_memory=True)
-dataset_test = DeepGlobe(os.path.join(data_path, "offical_crossvali"), ids_test, label=False)
-dataloader_test = torch.utils.data.DataLoader(dataset=dataset_test, batch_size=batch_size, num_workers=10, collate_fn=collate_test, shuffle=False, pin_memory=True)
+dataset_train = DeepGlobe(os.path.join(data_path), split='train', label=True, transform=True)
+dataloader_train = torch.utils.data.DataLoader(dataset=dataset_train, batch_size=batch_size, num_workers=0, collate_fn=collate, shuffle=True, pin_memory=True)
+dataset_val = DeepGlobe(os.path.join(data_path), split='crossvali', label=True)
+dataloader_val = torch.utils.data.DataLoader(dataset=dataset_val, batch_size=batch_size, num_workers=0, collate_fn=collate, shuffle=False, pin_memory=True)
+# dataset_test = DeepGlobe(os.path.join(data_path, "offical_crossvali"), ids_test, label=False)
+# dataloader_test = torch.utils.data.DataLoader(dataset=dataset_test, batch_size=batch_size, num_workers=10, collate_fn=collate_test, shuffle=False, pin_memory=True)
+
 
 ##### sizes are (w, h) ##############################
 # make sure margin / 32 is over 1.5 AND size_g is divisible by 4
@@ -77,7 +91,7 @@ optimizer = get_optimizer(model, mode, learning_rate=learning_rate)
 scheduler = LR_Scheduler('poly', learning_rate, num_epochs, len(dataloader_train))
 ##################################
 
-criterion1 = FocalLoss(gamma=3)
+criterion1 = FocalLoss(gamma=3, ignore=0)
 criterion2 = nn.CrossEntropyLoss()
 criterion3 = lovasz_softmax
 criterion = lambda x,y: criterion1(x, y)

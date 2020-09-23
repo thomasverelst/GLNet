@@ -13,7 +13,7 @@ from torchvision import transforms
 from models.fpn_global_local_fmreg_ensemble import fpn
 from utils.metrics import ConfusionMatrix
 from PIL import Image
-
+import dataset.deep_globe
 # torch.cuda.synchronize()
 # torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
@@ -37,7 +37,7 @@ def resize(images, shape, label=False):
 
 def _mask_transform(mask):
     target = np.array(mask).astype('int32')
-    target[target == 255] = -1
+    # target[target == 255] = -1
     # target -= 1 # in DeepGlobe: make class 0 (should be ignored) as -1 (to be ignored in cross_entropy)
     return target
 
@@ -291,7 +291,11 @@ class Trainer(object):
         images_glb = resize(images, self.size_g) # list of resized PIL images
         images_glb = images_transform(images_glb)
         labels_glb = resize(labels, (self.size_g[0] // 4, self.size_g[1] // 4), label=True) # FPN down 1/4, for loss
+        # for labels in range(len(labels_glb)):
+        #     labels_glb[labels] = labels_glb[labels].convert('L')
         labels_glb = masks_transform(labels_glb)
+        labels_glb = dataset.deep_globe.RGB_mapping_to_class(labels_glb)
+        print(labels_glb.shape)
 
         if self.mode == 2 or self.mode == 3:
             patches, coordinates, templates, sizes, ratios = global2patch(images, self.size_p)
@@ -418,11 +422,17 @@ class Evaluator(object):
         self.metrics_global.reset()
 
     def eval_test(self, sample, model, global_fixed):
+        print('EVAL')
         with torch.no_grad():
             images = sample['image']
             if not self.test:
                 labels = sample['label'] # PIL images
+                # print('LBL', (labels))
                 labels_npy = masks_transform(labels, numpy=True)
+            z = []
+            for i in range(labels_npy.shape[0]):
+                z.append(dataset.deep_globe.RGB_mapping_to_class(labels_npy[i]))
+            labels_npy = np.stack(z, axis=0)
 
             images_global = resize(images, self.size_g)
             outputs_global = np.zeros((len(images), self.n_class, self.size_g[0] // 4, self.size_g[1] // 4))
@@ -432,6 +442,7 @@ class Evaluator(object):
                 scores = [ np.zeros((1, self.n_class, images[i].size[1], images[i].size[0])) for i in range(len(images)) ]
 
             for flip in self.flip_range:
+                print('FLIP', flip)
                 if flip:
                     # we already rotated images for 270'
                     for b in range(len(images)):
@@ -441,6 +452,7 @@ class Evaluator(object):
                             images_local[b] = transforms.functional.rotate(images_local[b], 90) # rotate back!
                             images_local[b] = transforms.functional.hflip(images_local[b])
                 for angle in self.rotate_range:
+                    print('angle', angle)
                     if angle > 0:
                         for b in range(len(images)):
                             images_global[b] = transforms.functional.rotate(images_global[b], 90)

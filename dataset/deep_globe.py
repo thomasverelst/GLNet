@@ -22,6 +22,7 @@ def find_label_map_name(img_filenames, labelExtension=".png"):
 def RGB_mapping_to_class(label):
     l, w = label.shape[0], label.shape[1]
     classmap = np.zeros(shape=(l, w))
+    # print(label)
     indices = np.where(np.all(label == (0, 255, 255), axis=-1))
     classmap[indices[0].tolist(), indices[1].tolist()] = 1
     indices = np.where(np.all(label == (255, 255, 0), axis=-1))
@@ -87,7 +88,7 @@ def label_bluring(inputs):
 class DeepGlobe(data.Dataset):
     """input and label image dataset"""
 
-    def __init__(self, root, ids, label=False, transform=False):
+    def __init__(self, root, split, label=False, transform=False):
         super(DeepGlobe, self).__init__()
         """
         Args:
@@ -95,25 +96,50 @@ class DeepGlobe(data.Dataset):
         fileDir(string):  directory with all the input images.
         transform(callable, optional): Optional transform to be applied on a sample
         """
+        if split == 'train':
+            self.img_path = os.path.join(root, 'land-train')
+            id_file = 'train.txt'
+        elif split == 'crossvali' or split =='train-val' or split == 'val':
+            self.img_path = os.path.join(root, 'land-train')
+            id_file = 'crossvali.txt'
+        elif split == 'train-test' or split =='train-val' or split == 'test':
+            raise NotImplementedError()
+            # img_path = os.path.join(root, 'land-train')
+            # id_file = os.path.join(root, 'test.txt')
+        else:
+            return NotImplemented(f'split {split}')
+
+        ids = []
+        with open(id_file, 'r') as f:
+            for line in f.readlines():
+                line = line.strip()
+                if not '.' in line:
+                    continue
+                ids.append(line)
+        self.ids = ids
+
+
+
         self.root = root
         self.label = label
         self.transform = transform
-        self.ids = ids
         self.classdict = {1: "urban", 2: "agriculture", 3: "rangeland", 4: "forest", 5: "water", 6: "barren", 0: "unknown"}
         
         self.color_jitter = transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.04)
         self.resizer = transforms.Resize((2448, 2448))
 
     def __getitem__(self, index):
+        print('got item')
         sample = {}
         sample['id'] = self.ids[index][:-8]
-        image = Image.open(os.path.join(self.root, "Sat/" + self.ids[index])) # w, h
+        image = Image.open(os.path.join(self.img_path, self.ids[index])) # w, h
         sample['image'] = image
         # sample['image'] = transforms.functional.adjust_contrast(image, 1.4)
         if self.label:
             # label = scipy.io.loadmat(join(self.root, 'Notification/' + self.ids[index].replace('_sat.jpg', '_mask.mat')))["label"]
             # label = Image.fromarray(label)
-            label = Image.open(os.path.join(self.root, 'Label/' + self.ids[index].replace('_sat.jpg', '_mask.png')))
+            label = Image.open(os.path.join(self.img_path, self.ids[index].replace('_sat.jpg', '_mask.png')))
+            
             sample['label'] = label
         if self.transform and self.label:
             image, label = self._transform(image, label)
